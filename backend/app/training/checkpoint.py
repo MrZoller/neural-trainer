@@ -14,10 +14,13 @@ MNIST_NORMALIZATION = {"mean": [0.1307], "std": [0.3081]}
 
 def save_checkpoint(path: Path, *, run_id: str, config: dict, model, optimizer,
                     epoch: int, global_step: int, best_metric: float,
-                    device: torch.device, scheduler=None) -> None:
+                    device: torch.device, scheduler=None,
+                    arch: str = "simple_mlp", classes: list | None = None,
+                    normalization: dict | None = None) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     torch.save(
         {
+            "arch": arch,
             "model_state_dict": model.state_dict(),
             "optimizer_state_dict": optimizer.state_dict(),
             "scheduler_state_dict": scheduler.state_dict() if scheduler else None,
@@ -33,8 +36,8 @@ def save_checkpoint(path: Path, *, run_id: str, config: dict, model, optimizer,
                 "device_type": device.type,
                 "device": device_rng_state(device),
             },
-            "class_mapping": list(range(10)),
-            "normalization": MNIST_NORMALIZATION,
+            "class_mapping": classes if classes is not None else list(range(10)),
+            "normalization": normalization or MNIST_NORMALIZATION,
             "config": config,
             "run_id": run_id,
             "parent_run_id": config.get("parent_run_id"),

@@ -6,7 +6,10 @@ A guided app for training PyTorch models end-to-end: pick a task, curate data, w
 training with honest under-the-hood explanations, then use the trained model. The
 sequel to [neural-viz](https://github.com/MrZoller/neural-viz).
 
-**Design:** see [DESIGN.md](DESIGN.md). **Current state:** Phase 0 (scaffolding).
+**Design:** see [DESIGN.md](DESIGN.md). **Current state:** Phase 2A — MNIST from
+scratch (Track 1) and custom image classification via transfer learning (Track 2:
+folder import with EXIF-burst capture groups, labeling grid, leakage-safe splits,
+dataset versioning, fine-tuned MobileNetV3, upload-image inference).
 
 ## Prerequisites
 

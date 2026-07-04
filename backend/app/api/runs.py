@@ -4,6 +4,8 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 
 from app.api.security import issue_ticket, require_auth
+from app.config import DATA_DIR
+from app.datasets import versions as dataset_versions
 from app.store.db import TERMINAL_STATUSES
 from app.training import infer
 
@@ -14,16 +16,24 @@ MAX_SERIES_POINTS = 500
 
 class RunCreate(BaseModel):
     track: str = "mnist_mlp"
-    epochs: int = 3
-    lr: float = 0.1
-    batch_size: int = 128
+    epochs: int | None = None  # default depends on track (3 mnist / 10 custom)
+    lr: float | None = None    # 0.1 mnist / 1e-3 custom
+    batch_size: int | None = None
     hidden: list[int] = [128, 64]
     seed: int = 0
     device: str = "auto"
+    dataset_id: str | None = None  # required for track=custom_finetune
     parent_run_id: str | None = None
     # fake-worker knobs (tests / event-backbone development)
     batches_per_epoch: int | None = None
     delay: float | None = None
+
+
+TRACK_DEFAULTS = {
+    "mnist_mlp": {"epochs": 3, "lr": 0.1, "batch_size": 128},
+    "custom_finetune": {"epochs": 10, "lr": 1e-3, "batch_size": 32},
+    "fake": {"epochs": 2, "lr": 0.1, "batch_size": 1},
+}
 
 
 class RunAction(BaseModel):
@@ -62,7 +72,28 @@ def create_run(body: RunCreate, request: Request):
             raise HTTPException(404, str(e))
         except ValueError as e:
             raise HTTPException(409, str(e))
-    config = body.model_dump(exclude={"parent_run_id"}, exclude_none=True)
+
+    config = {**TRACK_DEFAULTS.get(body.track, TRACK_DEFAULTS["mnist_mlp"]),
+              **body.model_dump(exclude={"parent_run_id"}, exclude_unset=True,
+                                exclude_none=True)}
+    if body.track == "custom_finetune":
+        if not body.dataset_id:
+            raise HTTPException(400, "custom_finetune requires dataset_id")
+        if not db(request).get_dataset(body.dataset_id):
+            raise HTTPException(404, "no such dataset")
+        # Freeze the living dataset into an immutable version (DESIGN.md §3);
+        # the run trains on this manifest no matter how the dataset changes.
+        try:
+            version = dataset_versions.freeze_version(db(request), body.dataset_id)
+        except dataset_versions.FreezeError as e:
+            raise HTTPException(409, str(e))
+        manifest_path = dataset_versions.write_manifest_file(
+            version, DATA_DIR / "datasets" / body.dataset_id / "versions")
+        config.update({"dataset_version_id": version["id"],
+                       "manifest_hash": version["manifest_hash"],
+                       "manifest_path": str(manifest_path),
+                       "classes": version["classes"]})
+        return manager(request).submit(config, dataset_version_id=version["id"])
     return manager(request).submit(config)
 
 

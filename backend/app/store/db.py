@@ -43,6 +43,39 @@ CREATE TABLE IF NOT EXISTS checkpoints (
   metrics_json TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_checkpoints_run ON checkpoints(run_id);
+
+CREATE TABLE IF NOT EXISTS datasets (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS images (
+  id TEXT PRIMARY KEY,
+  dataset_id TEXT NOT NULL,
+  content_hash TEXT NOT NULL,
+  path TEXT NOT NULL,
+  filename TEXT NOT NULL,
+  folder TEXT NOT NULL DEFAULT '',
+  label TEXT,
+  capture_group TEXT NOT NULL,
+  group_source TEXT NOT NULL DEFAULT 'file',  -- exif | file | manual
+  excluded INTEGER NOT NULL DEFAULT 0,
+  taken_at TEXT,
+  created_at TEXT NOT NULL,
+  UNIQUE(dataset_id, content_hash)
+);
+CREATE INDEX IF NOT EXISTS idx_images_dataset ON images(dataset_id);
+
+CREATE TABLE IF NOT EXISTS dataset_versions (
+  id TEXT PRIMARY KEY,
+  dataset_id TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  manifest_json TEXT NOT NULL,
+  manifest_hash TEXT NOT NULL,
+  classes_json TEXT NOT NULL,
+  stats_json TEXT NOT NULL
+);
 """
 
 TERMINAL_STATUSES = {"cancelled", "stopped", "killed", "done", "failed", "interrupted"}
@@ -62,16 +95,22 @@ class Database:
         self._lock = threading.Lock()
         with self._lock, self._conn:
             self._conn.executescript(SCHEMA)
+            # Migration for pre-2A databases.
+            cols = {r[1] for r in self._conn.execute("PRAGMA table_info(runs)")}
+            if "dataset_version_id" not in cols:
+                self._conn.execute("ALTER TABLE runs ADD COLUMN dataset_version_id TEXT")
 
     # ── runs ──────────────────────────────────────────────────────────────
 
     def create_run(self, run_id: str, config: dict, stream_schema_version: int,
-                   parent_run_id: str | None = None) -> dict:
+                   parent_run_id: str | None = None,
+                   dataset_version_id: str | None = None) -> dict:
         with self._lock, self._conn:
             self._conn.execute(
                 "INSERT INTO runs (id, created_at, status, config_json, parent_run_id,"
-                " stream_schema_version) VALUES (?, ?, 'queued', ?, ?, ?)",
-                (run_id, _now(), json.dumps(config), parent_run_id, stream_schema_version),
+                " stream_schema_version, dataset_version_id) VALUES (?, ?, 'queued', ?, ?, ?, ?)",
+                (run_id, _now(), json.dumps(config), parent_run_id,
+                 stream_schema_version, dataset_version_id),
             )
         return self.get_run(run_id)
 
@@ -153,4 +192,96 @@ class Database:
             return None
         d = dict(row)
         d["metrics"] = json.loads(d.pop("metrics_json") or "{}")
+        return d
+
+    # ── datasets ──────────────────────────────────────────────────────────
+
+    def create_dataset(self, dataset_id: str, name: str) -> dict:
+        with self._lock, self._conn:
+            self._conn.execute(
+                "INSERT INTO datasets (id, name, created_at) VALUES (?, ?, ?)",
+                (dataset_id, name, _now()))
+        return self.get_dataset(dataset_id)
+
+    def get_dataset(self, dataset_id: str) -> dict | None:
+        row = self._conn.execute(
+            "SELECT * FROM datasets WHERE id = ?", (dataset_id,)).fetchone()
+        return dict(row) if row else None
+
+    def list_datasets(self) -> list[dict]:
+        rows = self._conn.execute("""
+            SELECT d.*,
+                   COUNT(i.id) AS n_images,
+                   SUM(CASE WHEN i.label IS NOT NULL AND i.excluded = 0 THEN 1 ELSE 0 END) AS n_labeled
+            FROM datasets d LEFT JOIN images i ON i.dataset_id = d.id
+            GROUP BY d.id ORDER BY d.created_at DESC
+        """).fetchall()
+        return [dict(r) for r in rows]
+
+    def add_image(self, image: dict) -> bool:
+        """Insert an image row; returns False when the content hash already
+        exists in this dataset (exact-duplicate upload)."""
+        try:
+            with self._lock, self._conn:
+                self._conn.execute(
+                    "INSERT INTO images (id, dataset_id, content_hash, path, filename,"
+                    " folder, label, capture_group, group_source, taken_at, created_at)"
+                    " VALUES (:id, :dataset_id, :content_hash, :path, :filename,"
+                    " :folder, :label, :capture_group, :group_source, :taken_at, :created_at)",
+                    {**image, "created_at": _now()})
+            return True
+        except sqlite3.IntegrityError:
+            return False
+
+    def list_images(self, dataset_id: str) -> list[dict]:
+        rows = self._conn.execute(
+            "SELECT * FROM images WHERE dataset_id = ? ORDER BY folder, taken_at, filename",
+            (dataset_id,)).fetchall()
+        return [dict(r) for r in rows]
+
+    def get_image(self, image_id: str) -> dict | None:
+        row = self._conn.execute(
+            "SELECT * FROM images WHERE id = ?", (image_id,)).fetchone()
+        return dict(row) if row else None
+
+    def update_image(self, image_id: str, fields: dict) -> None:
+        allowed = {"label", "excluded", "capture_group", "group_source"}
+        sets = {k: v for k, v in fields.items() if k in allowed}
+        if not sets:
+            return
+        assign = ", ".join(f"{k} = ?" for k in sets)
+        with self._lock, self._conn:
+            self._conn.execute(
+                f"UPDATE images SET {assign} WHERE id = ?", (*sets.values(), image_id))
+
+    def set_capture_groups(self, assignments: dict[str, tuple[str, str]]) -> None:
+        """Bulk (group, source) reassignment for non-manual images
+        (import-time inference)."""
+        with self._lock, self._conn:
+            self._conn.executemany(
+                "UPDATE images SET capture_group = ?, group_source = ?"
+                " WHERE id = ? AND group_source != 'manual'",
+                [(g, s, i) for i, (g, s) in assignments.items()])
+
+    # ── dataset versions ──────────────────────────────────────────────────
+
+    def create_dataset_version(self, version_id: str, dataset_id: str, manifest: list,
+                               manifest_hash: str, classes: list, stats: dict) -> dict:
+        with self._lock, self._conn:
+            self._conn.execute(
+                "INSERT INTO dataset_versions (id, dataset_id, created_at, manifest_json,"
+                " manifest_hash, classes_json, stats_json) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (version_id, dataset_id, _now(), json.dumps(manifest), manifest_hash,
+                 json.dumps(classes), json.dumps(stats)))
+        return self.get_dataset_version(version_id)
+
+    def get_dataset_version(self, version_id: str) -> dict | None:
+        row = self._conn.execute(
+            "SELECT * FROM dataset_versions WHERE id = ?", (version_id,)).fetchone()
+        if not row:
+            return None
+        d = dict(row)
+        d["manifest"] = json.loads(d.pop("manifest_json"))
+        d["classes"] = json.loads(d.pop("classes_json"))
+        d["stats"] = json.loads(d.pop("stats_json"))
         return d

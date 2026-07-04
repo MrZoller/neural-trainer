@@ -3,6 +3,7 @@ import { getJSON, openRunSocket, postJSON } from '../api.js'
 import DrawCanvas from './DrawCanvas.jsx'
 import RunCharts, { LayerStatsTable } from './RunCharts.jsx'
 import StatusBadge from './StatusBadge.jsx'
+import UploadPredict from './UploadPredict.jsx'
 
 const RESUMABLE = new Set(['stopped', 'killed', 'failed', 'interrupted'])
 
@@ -59,7 +60,7 @@ export default function RunView({ runId, onNavigate }) {
     setActionError(null)
     try {
       const child = await postJSON('/api/runs', { parent_run_id: runId })
-      onNavigate(child.id)
+      onNavigate({ name: 'run', id: child.id })
     } catch (e) {
       setActionError(e.message)
     }
@@ -73,7 +74,8 @@ export default function RunView({ runId, onNavigate }) {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3 flex-wrap">
-        <button className="text-slate-400 hover:text-slate-200 text-sm" onClick={() => onNavigate(null)}>
+        <button className="text-slate-400 hover:text-slate-200 text-sm"
+                onClick={() => onNavigate({ name: 'home' })}>
           ← runs
         </button>
         <h2 className="font-mono text-sm text-slate-300">{runId}</h2>
@@ -105,7 +107,8 @@ export default function RunView({ runId, onNavigate }) {
       {run?.parent_run_id && (
         <p className="text-xs text-slate-500">
           resumed from{' '}
-          <button className="underline hover:text-slate-300" onClick={() => onNavigate(run.parent_run_id)}>
+          <button className="underline hover:text-slate-300"
+                  onClick={() => onNavigate({ name: 'run', id: run.parent_run_id })}>
             {run.parent_run_id}
           </button>
         </p>
@@ -119,7 +122,11 @@ export default function RunView({ runId, onNavigate }) {
 
       <RunCharts epochs={state.epochs} batch={state.batch} />
       <LayerStatsTable layers={state.layers} />
-      {(state.hasCheckpoint || run?.latest_checkpoint) && <DrawCanvas runId={runId} />}
+      {(state.hasCheckpoint || run?.latest_checkpoint) && (
+        config?.track === 'custom_finetune'
+          ? <UploadPredict runId={runId} />
+          : <DrawCanvas runId={runId} />
+      )}
     </div>
   )
 }

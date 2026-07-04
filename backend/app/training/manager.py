@@ -22,6 +22,22 @@ from app.store.db import RESUMABLE_STATUSES, TERMINAL_STATUSES, Database
 from app.training.worker import worker_main
 
 
+def _env_stamp() -> dict:
+    import subprocess
+
+    import torch
+    import torchvision
+
+    try:
+        commit = subprocess.run(["git", "rev-parse", "--short", "HEAD"],
+                                capture_output=True, text=True, timeout=2,
+                                cwd=Path(__file__).parent).stdout.strip() or None
+    except Exception:
+        commit = None
+    return {"torch": torch.__version__, "torchvision": torchvision.__version__,
+            "git_commit": commit}
+
+
 @dataclass
 class ActiveRun:
     run_id: str
@@ -67,9 +83,12 @@ class RunManager:
 
     # ── public API ────────────────────────────────────────────────────────
 
-    def submit(self, config: dict, parent_run_id: str | None = None) -> dict:
+    def submit(self, config: dict, parent_run_id: str | None = None,
+               dataset_version_id: str | None = None) -> dict:
         run_id = uuid.uuid4().hex[:12]
-        run = self.db.create_run(run_id, config, STREAM_SCHEMA_VERSION, parent_run_id)
+        config = {**config, "env": _env_stamp()}  # reproducibility (§4 run manifest)
+        run = self.db.create_run(run_id, config, STREAM_SCHEMA_VERSION, parent_run_id,
+                                 dataset_version_id)
         self._append(run_id, "run_status", {"status": "queued"})
         with self._lock:
             self.pending.append(run_id)

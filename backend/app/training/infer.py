@@ -66,6 +66,12 @@ def preprocess_canvas(image_b64: str) -> tuple[torch.Tensor, list[list[int]]]:
 
 def predict(checkpoint_path: str, image_b64: str) -> dict:
     ckpt = load_checkpoint(checkpoint_path)
+    if ckpt.get("arch", "simple_mlp") == "mobilenet_v3_small":
+        return _predict_custom(ckpt, image_b64)
+    return _predict_mnist(ckpt, image_b64)
+
+
+def _predict_mnist(ckpt: dict, image_b64: str) -> dict:
     model = SimpleMLP(hidden=tuple(ckpt["config"].get("hidden", [128, 64])))
     model.load_state_dict(ckpt["model_state_dict"])
     model.eval()
@@ -78,4 +84,37 @@ def predict(checkpoint_path: str, image_b64: str) -> dict:
         "probs": [round(p, 5) for p in probs.tolist()],
         "preprocessed": preview,  # the 28×28 the model actually saw
         "class_mapping": ckpt.get("class_mapping", list(range(10))),
+    }
+
+
+def _predict_custom(ckpt: dict, image_b64: str) -> dict:
+    from torchvision import transforms
+
+    from app.training.finetune import IMAGENET_NORM, build_model
+
+    classes = ckpt["class_mapping"]
+    model = build_model(len(classes))
+    model.load_state_dict(ckpt["model_state_dict"])
+    model.eval()
+
+    raw = base64.b64decode(image_b64.split(",")[-1])
+    img = Image.open(io.BytesIO(raw)).convert("RGB")
+    resize = transforms.Compose([transforms.Resize(256), transforms.CenterCrop(224)])
+    crop = resize(img)
+    tensor = transforms.Normalize(IMAGENET_NORM["mean"], IMAGENET_NORM["std"])(
+        transforms.ToTensor()(crop)).unsqueeze(0)
+
+    with torch.no_grad():
+        probs = torch.softmax(model(tensor), dim=1).squeeze(0)
+
+    # "What the model sees": the 224×224 center crop, as a small data URL.
+    buf = io.BytesIO()
+    crop.save(buf, format="JPEG", quality=80)
+    preview_url = "data:image/jpeg;base64," + base64.b64encode(buf.getvalue()).decode()
+
+    return {
+        "prediction": classes[int(probs.argmax().item())],
+        "probs": [round(p, 5) for p in probs.tolist()],
+        "preview_url": preview_url,
+        "class_mapping": classes,
     }

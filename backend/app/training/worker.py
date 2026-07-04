@@ -22,8 +22,12 @@ BATCH_EVENT_EVERY = 20  # batches between batch_metrics events (throttling, §4)
 def worker_main(run_id: str, config: dict, run_dir: str, queue, stop_event) -> None:
     emit = lambda type_, payload: queue.put({"type": type_, "payload": payload})
     try:
-        if config.get("track") == "fake":
+        track = config.get("track")
+        if track == "fake":
             fake_run(emit, stop_event, config)
+        elif track == "custom_finetune":
+            from app.training.finetune import finetune_run
+            finetune_run(run_id, config, Path(run_dir), emit, stop_event)
         else:
             mnist_run(run_id, config, Path(run_dir), emit, stop_event)
     except Exception:

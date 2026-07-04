@@ -6,6 +6,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api import datasets as datasets_api
 from app.api import runs as runs_api
 from app.api import ws as ws_api
 from app.config import DATA_DIR
@@ -37,6 +38,7 @@ app.add_middleware(
 )
 
 app.include_router(runs_api.router)
+app.include_router(datasets_api.router)
 app.include_router(ws_api.router)
 
 
