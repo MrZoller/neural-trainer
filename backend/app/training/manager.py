@@ -87,8 +87,8 @@ class RunManager:
                dataset_version_id: str | None = None) -> dict:
         run_id = uuid.uuid4().hex[:12]
         config = {**config, "env": _env_stamp()}  # reproducibility (§4 run manifest)
-        run = self.db.create_run(run_id, config, STREAM_SCHEMA_VERSION, parent_run_id,
-                                 dataset_version_id)
+        self.db.create_run(run_id, config, STREAM_SCHEMA_VERSION, parent_run_id,
+                           dataset_version_id)
         self._append(run_id, "run_status", {"status": "queued"})
         with self._lock:
             self.pending.append(run_id)
