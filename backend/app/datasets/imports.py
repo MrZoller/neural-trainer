@@ -56,8 +56,8 @@ def import_file(db: Database, dataset_id: str, files_root: Path, *,
         img = Image.open(io.BytesIO(data))
         img.verify()
         img = Image.open(io.BytesIO(data))  # verify() invalidates the object
-    except Exception:
-        raise ImportError_(f"{rel_name}: not a decodable image")
+    except Exception as e:
+        raise ImportError_(f"{rel_name}: not a decodable image") from e
 
     rel = Path(rel_name.replace("\\", "/"))
     folder = rel.parent.as_posix() if rel.parent.as_posix() != "." else ""

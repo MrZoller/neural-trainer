@@ -1,0 +1,38 @@
+name: Feature request
+description: Suggest a capability or an improvement
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please check [DESIGN.md](../blob/main/DESIGN.md) first — especially the
+        non-goals in §1. Some things are deliberately out of scope.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: What are you trying to do that's hard or impossible today?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What would you like to happen?
+    validations:
+      required: true
+
+  - type: textarea
+    id: teaching-value
+    attributes:
+      label: What does it make visible?
+      description: >
+        This project's bar for new features is whether it makes what the model
+        is doing more understandable. If that doesn't apply, say so — usefulness
+        counts too.
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you considered

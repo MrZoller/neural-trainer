@@ -69,9 +69,9 @@ def create_run(body: RunCreate, request: Request):
                                            {"epochs": provided["epochs"]}
                                            if "epochs" in provided else {})
         except LookupError as e:
-            raise HTTPException(404, str(e))
+            raise HTTPException(404, str(e)) from e
         except ValueError as e:
-            raise HTTPException(409, str(e))
+            raise HTTPException(409, str(e)) from e
 
     config = {**TRACK_DEFAULTS.get(body.track, TRACK_DEFAULTS["mnist_mlp"]),
               **body.model_dump(exclude={"parent_run_id"}, exclude_unset=True,
@@ -86,7 +86,7 @@ def create_run(body: RunCreate, request: Request):
         try:
             version = dataset_versions.freeze_version(db(request), body.dataset_id)
         except dataset_versions.FreezeError as e:
-            raise HTTPException(409, str(e))
+            raise HTTPException(409, str(e)) from e
         manifest_path = dataset_versions.write_manifest_file(
             version, DATA_DIR / "datasets" / body.dataset_id / "versions")
         config.update({"dataset_version_id": version["id"],
@@ -141,7 +141,7 @@ def run_action(run_id: str, body: RunAction, request: Request):
         if body.action == "kill":
             return {"status": manager(request).kill(run_id)}
     except LookupError:
-        raise HTTPException(409, f"run is {run['status']}; cannot {body.action}")
+        raise HTTPException(409, f"run is {run['status']}; cannot {body.action}") from None
     raise HTTPException(400, "action must be 'stop' or 'kill'")
 
 
@@ -153,7 +153,7 @@ def predict(run_id: str, body: PredictBody, request: Request):
     try:
         return infer.predict(ckpt["path"], body.image)
     except infer.EmptyCanvasError:
-        raise HTTPException(400, "canvas is empty — draw a digit first")
+        raise HTTPException(400, "canvas is empty — draw a digit first") from None
 
 
 @router.post("/ws-ticket")

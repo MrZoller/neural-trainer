@@ -1,0 +1,13 @@
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.pt binary
+*.pth binary
+*.ckpt binary
+
+# Generated — collapse on GitHub and exclude from language stats. Deliberately
+# not marked -diff: dependency changes must stay reviewable in `git diff`.
+frontend/package-lock.json linguist-generated=true
+backend/uv.lock            linguist-generated=true

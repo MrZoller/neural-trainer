@@ -8,7 +8,7 @@ materialized view of the latest run_status event.
 import json
 import sqlite3
 import threading
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 SCHEMA = """
@@ -83,7 +83,7 @@ RESUMABLE_STATUSES = {"stopped", "killed", "failed", "interrupted"}
 
 
 def _now() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 class Database:
@@ -212,7 +212,8 @@ class Database:
         rows = self._conn.execute("""
             SELECT d.*,
                    COUNT(i.id) AS n_images,
-                   SUM(CASE WHEN i.label IS NOT NULL AND i.excluded = 0 THEN 1 ELSE 0 END) AS n_labeled
+                   SUM(CASE WHEN i.label IS NOT NULL AND i.excluded = 0
+                            THEN 1 ELSE 0 END) AS n_labeled
             FROM datasets d LEFT JOIN images i ON i.dataset_id = d.id
             GROUP BY d.id ORDER BY d.created_at DESC
         """).fetchall()

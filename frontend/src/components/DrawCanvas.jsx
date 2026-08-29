@@ -65,9 +65,11 @@ export default function DrawCanvas({ runId }) {
   const predict = async () => {
     setError(null)
     try {
-      setResult(await postJSON(`/api/runs/${runId}/predict`, {
-        image: canvasRef.current.toDataURL('image/png'),
-      }))
+      setResult(
+        await postJSON(`/api/runs/${runId}/predict`, {
+          image: canvasRef.current.toDataURL('image/png'),
+        })
+      )
     } catch (e) {
       setError(e.message)
     }
@@ -89,10 +91,16 @@ export default function DrawCanvas({ runId }) {
             onPointerLeave={() => (drawing.current = false)}
           />
           <div className="flex gap-2 mt-2">
-            <button className="bg-sky-700 hover:bg-sky-600 rounded px-3 py-1 text-sm" onClick={predict}>
+            <button
+              className="bg-sky-700 hover:bg-sky-600 rounded px-3 py-1 text-sm"
+              onClick={predict}
+            >
               Predict
             </button>
-            <button className="bg-slate-800 hover:bg-slate-700 rounded px-3 py-1 text-sm" onClick={clear}>
+            <button
+              className="bg-slate-800 hover:bg-slate-700 rounded px-3 py-1 text-sm"
+              onClick={clear}
+            >
               Clear
             </button>
           </div>
@@ -112,7 +120,8 @@ export default function DrawCanvas({ runId }) {
             </div>
             <div>
               <p className="text-xs text-slate-500 mb-1">
-                prediction: <span className="text-2xl text-slate-100 font-bold">{result.prediction}</span>
+                prediction:{' '}
+                <span className="text-2xl text-slate-100 font-bold">{result.prediction}</span>
               </p>
               {result.probs.map((p, digit) => (
                 <div key={digit} className="flex items-center gap-2 text-xs">

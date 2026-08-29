@@ -1,0 +1,84 @@
+name: Bug report
+description: Something behaves incorrectly
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. Training bugs are often device-specific, so the
+        environment fields below matter more than usual.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What did you see, and what did you expect instead?
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Start with ./scripts/dev.sh
+        2. Create a custom dataset with ...
+        3. Start a run with ...
+        4. See error
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Training runs / lifecycle
+        - Datasets (import, labeling, splits, versions)
+        - Inference (draw / upload)
+        - Live charts or WebSocket streaming
+        - Setup / dev environment
+        - Other or not sure
+    validations:
+      required: true
+
+  - type: dropdown
+    id: device
+    attributes:
+      label: Compute device
+      description: Shown on the home screen — which backend PyTorch selected.
+      options:
+        - CUDA
+        - MPS (Apple Silicon)
+        - CPU
+        - Not sure
+    validations:
+      required: true
+
+  - type: input
+    id: platform
+    attributes:
+      label: OS and version
+      placeholder: macOS 15.6 / Ubuntu 24.04
+    validations:
+      required: true
+
+  - type: input
+    id: versions
+    attributes:
+      label: Python, torch, and Node versions
+      description: "`uv run python -c 'import torch; print(torch.__version__)'` and `node -v`"
+      placeholder: Python 3.12.12, torch 2.12.1, Node 20.11.0
+
+  - type: input
+    id: commit
+    attributes:
+      label: Commit
+      description: Output of `git rev-parse --short HEAD`.
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Backend traceback and/or browser console output. Rendered as code, no backticks needed.
+      render: shell

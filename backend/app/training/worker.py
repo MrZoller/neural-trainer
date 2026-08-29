@@ -12,7 +12,12 @@ import traceback
 import uuid
 from pathlib import Path
 
-from app.training.checkpoint import MNIST_NORMALIZATION, load_checkpoint, restore_rng, save_checkpoint
+from app.training.checkpoint import (
+    MNIST_NORMALIZATION,
+    load_checkpoint,
+    restore_rng,
+    save_checkpoint,
+)
 from app.training.device import resolve_device
 from app.training.models import SimpleMLP
 
@@ -20,7 +25,9 @@ BATCH_EVENT_EVERY = 20  # batches between batch_metrics events (throttling, §4)
 
 
 def worker_main(run_id: str, config: dict, run_dir: str, queue, stop_event) -> None:
-    emit = lambda type_, payload: queue.put({"type": type_, "payload": payload})
+    def emit(type_, payload):
+        queue.put({"type": type_, "payload": payload})
+
     try:
         track = config.get("track")
         if track == "fake":

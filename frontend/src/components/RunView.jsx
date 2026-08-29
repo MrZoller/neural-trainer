@@ -8,8 +8,14 @@ import UploadPredict from './UploadPredict.jsx'
 const RESUMABLE = new Set(['stopped', 'killed', 'failed', 'interrupted'])
 
 const initial = {
-  status: null, device: null, params: null, error: null,
-  batch: [], epochs: [], layers: null, hasCheckpoint: false,
+  status: null,
+  device: null,
+  params: null,
+  error: null,
+  batch: [],
+  epochs: [],
+  layers: null,
+  hasCheckpoint: false,
 }
 
 // Everything on screen derives from the persisted event stream — a refresh
@@ -19,7 +25,8 @@ function reduce(state, event) {
   switch (event.type) {
     case 'run_status':
       return {
-        ...state, status: p.status,
+        ...state,
+        status: p.status,
         device: p.device ?? state.device,
         params: p.params ?? state.params,
         error: p.error ?? state.error,
@@ -43,7 +50,9 @@ export default function RunView({ runId, onNavigate }) {
   const [actionError, setActionError] = useState(null)
 
   useEffect(() => {
-    getJSON(`/api/runs/${runId}`).then(setRun).catch(() => {})
+    getJSON(`/api/runs/${runId}`)
+      .then(setRun)
+      .catch(() => {})
     return openRunSocket(runId, dispatch)
   }, [runId])
 
@@ -74,8 +83,10 @@ export default function RunView({ runId, onNavigate }) {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3 flex-wrap">
-        <button className="text-slate-400 hover:text-slate-200 text-sm"
-                onClick={() => onNavigate({ name: 'home' })}>
+        <button
+          className="text-slate-400 hover:text-slate-200 text-sm"
+          onClick={() => onNavigate({ name: 'home' })}
+        >
           ← runs
         </button>
         <h2 className="font-mono text-sm text-slate-300">{runId}</h2>
@@ -83,22 +94,32 @@ export default function RunView({ runId, onNavigate }) {
         {state.device && (
           <span className="text-xs text-slate-500">
             {state.device.toUpperCase()} · {state.params?.toLocaleString()} params
-            {config && ` · lr ${config.lr} · batch ${config.batch_size} · hidden [${config.hidden}]`}
+            {config &&
+              ` · lr ${config.lr} · batch ${config.batch_size} · hidden [${config.hidden}]`}
           </span>
         )}
         <span className="flex-1" />
         {canStop && (
-          <button className="bg-amber-800 hover:bg-amber-700 rounded px-3 py-1 text-sm" onClick={() => act('stop')}>
+          <button
+            className="bg-amber-800 hover:bg-amber-700 rounded px-3 py-1 text-sm"
+            onClick={() => act('stop')}
+          >
             Stop (checkpoint &amp; exit)
           </button>
         )}
         {canKill && (
-          <button className="bg-rose-900 hover:bg-rose-800 rounded px-3 py-1 text-sm" onClick={() => act('kill')}>
+          <button
+            className="bg-rose-900 hover:bg-rose-800 rounded px-3 py-1 text-sm"
+            onClick={() => act('kill')}
+          >
             Kill
           </button>
         )}
         {canResume && (
-          <button className="bg-sky-700 hover:bg-sky-600 rounded px-3 py-1 text-sm" onClick={resume}>
+          <button
+            className="bg-sky-700 hover:bg-sky-600 rounded px-3 py-1 text-sm"
+            onClick={resume}
+          >
             Resume from checkpoint
           </button>
         )}
@@ -107,8 +128,10 @@ export default function RunView({ runId, onNavigate }) {
       {run?.parent_run_id && (
         <p className="text-xs text-slate-500">
           resumed from{' '}
-          <button className="underline hover:text-slate-300"
-                  onClick={() => onNavigate({ name: 'run', id: run.parent_run_id })}>
+          <button
+            className="underline hover:text-slate-300"
+            onClick={() => onNavigate({ name: 'run', id: run.parent_run_id })}
+          >
             {run.parent_run_id}
           </button>
         </p>
@@ -122,11 +145,12 @@ export default function RunView({ runId, onNavigate }) {
 
       <RunCharts epochs={state.epochs} batch={state.batch} />
       <LayerStatsTable layers={state.layers} />
-      {(state.hasCheckpoint || run?.latest_checkpoint) && (
-        config?.track === 'custom_finetune'
-          ? <UploadPredict runId={runId} />
-          : <DrawCanvas runId={runId} />
-      )}
+      {(state.hasCheckpoint || run?.latest_checkpoint) &&
+        (config?.track === 'custom_finetune' ? (
+          <UploadPredict runId={runId} />
+        ) : (
+          <DrawCanvas runId={runId} />
+        ))}
     </div>
   )
 }

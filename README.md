@@ -1,5 +1,9 @@
 # neural-trainer
 
+[![CI](https://github.com/MrZoller/neural-trainer/actions/workflows/ci.yml/badge.svg)](https://github.com/MrZoller/neural-trainer/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
+
 Train a real neural net. See what it's actually doing.
 
 A guided app for training PyTorch models end-to-end: pick a task, curate data, watch
@@ -48,3 +52,28 @@ frontend/   React 18 + Vite 5 + Tailwind 3 (same stack as neural-viz)
 scripts/    dev helpers
 data/       app state — datasets, runs, DB (gitignored; copying it migrates everything)
 ```
+
+## Tests
+
+```bash
+cd backend && uv run pytest       # backend test suite
+cd backend && uv run ruff check . # lint
+cd frontend && npm run build      # frontend production build
+```
+
+CI runs the same commands on every pull request.
+
+## Contributing
+
+Bug reports, fixes, and documentation improvements are welcome — see
+[CONTRIBUTING.md](CONTRIBUTING.md) for setup, checks, and conventions, and
+[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) for community expectations.
+
+To report a security problem, follow [SECURITY.md](SECURITY.md) rather than
+opening a public issue. Note the intended deployment boundary: this backend is
+built to run on a machine you control, reached over a private network. Exposing
+it to the open internet is out of scope.
+
+## License
+
+[MIT](LICENSE) © Chris Zoller
