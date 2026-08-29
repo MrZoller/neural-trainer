@@ -1,5 +1,12 @@
 import {
-  CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis,
+  CartesianGrid,
+  Legend,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
 } from 'recharts'
 
 const AXIS = { stroke: '#475569', fontSize: 11 }
@@ -29,7 +36,13 @@ export default function RunCharts({ epochs, batch }) {
             <Tooltip {...TOOLTIP} />
             <Legend wrapperStyle={{ fontSize: 12 }} />
             <Line type="monotone" dataKey="train_loss" stroke="#38bdf8" dot={false} name="train" />
-            <Line type="monotone" dataKey="val_loss" stroke="#f59e0b" dot={false} name="validation" />
+            <Line
+              type="monotone"
+              dataKey="val_loss"
+              stroke="#f59e0b"
+              dot={false}
+              name="validation"
+            />
           </LineChart>
         </ResponsiveContainer>
       </Panel>
@@ -42,7 +55,13 @@ export default function RunCharts({ epochs, batch }) {
             <Tooltip {...TOOLTIP} />
             <Legend wrapperStyle={{ fontSize: 12 }} />
             <Line type="monotone" dataKey="train_acc" stroke="#38bdf8" dot={false} name="train" />
-            <Line type="monotone" dataKey="val_acc" stroke="#f59e0b" dot={false} name="validation" />
+            <Line
+              type="monotone"
+              dataKey="val_acc"
+              stroke="#f59e0b"
+              dot={false}
+              name="validation"
+            />
           </LineChart>
         </ResponsiveContainer>
       </Panel>
@@ -66,8 +85,8 @@ export function LayerStatsTable({ layers }) {
   return (
     <div className="bg-slate-900 rounded-xl p-4 border border-slate-800">
       <h3 className="text-sm text-slate-300 mb-2">
-        Per-layer stats (last epoch) — gradient magnitude and dead-ReLU count, the
-        numbers behind vanishing-gradient and dying-neuron stories
+        Per-layer stats (last epoch) — gradient magnitude and dead-ReLU count, the numbers behind
+        vanishing-gradient and dying-neuron stories
       </h3>
       <table className="w-full text-sm">
         <thead>

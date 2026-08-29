@@ -14,12 +14,18 @@ export default function App() {
   const [view, setView] = useState({ name: 'home' })
 
   const refresh = useCallback(() => {
-    getJSON('/api/runs').then(setRuns).catch(() => {})
-    getJSON('/api/datasets').then(setDatasets).catch(() => {})
+    getJSON('/api/runs')
+      .then(setRuns)
+      .catch(() => {})
+    getJSON('/api/datasets')
+      .then(setDatasets)
+      .catch(() => {})
   }, [])
 
   useEffect(() => {
-    getJSON('/api/device').then(setDevice).catch(() => setOffline(true))
+    getJSON('/api/device')
+      .then(setDevice)
+      .catch(() => setOffline(true))
     refresh()
     const t = setInterval(refresh, 5000)
     return () => clearInterval(t)
@@ -56,17 +62,24 @@ export default function App() {
         {view.name === 'home' && (
           <div className="space-y-6">
             <div className="grid md:grid-cols-2 gap-6">
-              <NewRunPanel onCreated={(run) => { refresh(); setView({ name: 'run', id: run.id }) }} />
+              <NewRunPanel
+                onCreated={(run) => {
+                  refresh()
+                  setView({ name: 'run', id: run.id })
+                }}
+              />
               <div className="bg-slate-900 rounded-xl p-5 border border-slate-800">
                 <h2 className="font-semibold mb-1">Teach it something of yours</h2>
                 <p className="text-sm text-slate-400 mb-4">
-                  Track 2: curate your own photos into classes, fine-tune a pretrained
-                  network, and use it on new images — ~30+ photos per class is enough.
+                  Track 2: curate your own photos into classes, fine-tune a pretrained network, and
+                  use it on new images — ~30+ photos per class is enough.
                 </p>
                 {datasets.map((d) => (
-                  <button key={d.id}
+                  <button
+                    key={d.id}
                     className="w-full flex items-center gap-3 text-left px-3 py-2 rounded-lg hover:bg-slate-800 text-sm"
-                    onClick={() => setView({ name: 'dataset', id: d.id })}>
+                    onClick={() => setView({ name: 'dataset', id: d.id })}
+                  >
                     <span className="flex-1">{d.name}</span>
                     <span className="text-xs text-slate-500">
                       {d.n_labeled || 0} labeled / {d.n_images || 0} images
@@ -81,8 +94,10 @@ export default function App() {
                     onChange={(e) => setNewDataset(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && createDataset()}
                   />
-                  <button className="bg-sky-700 hover:bg-sky-600 rounded px-3 py-1 text-sm"
-                          onClick={createDataset}>
+                  <button
+                    className="bg-sky-700 hover:bg-sky-600 rounded px-3 py-1 text-sm"
+                    onClick={createDataset}
+                  >
                     Create
                   </button>
                 </div>
@@ -117,7 +132,9 @@ export default function App() {
                         </td>
                         <td>{r.config.track}</td>
                         <td>{r.config.epochs}</td>
-                        <td><StatusBadge status={r.status} /></td>
+                        <td>
+                          <StatusBadge status={r.status} />
+                        </td>
                         <td className="text-slate-500 text-xs pr-5">
                           {new Date(r.created_at).toLocaleTimeString()}
                         </td>
