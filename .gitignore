@@ -2,13 +2,24 @@
 __pycache__/
 *.pyc
 .venv/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
 
 # Node
 node_modules/
 dist/
+*.log
 
 # App state (datasets, runs, checkpoints, DB — see DESIGN.md §3 Storage)
 data/
 
+# Local environment
+.env
+.env.local
+
 # OS / editor
 .DS_Store
+.idea/
+.vscode/
